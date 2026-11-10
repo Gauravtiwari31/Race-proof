@@ -51,7 +51,7 @@ const PER_SCENE: Record<string, Record<string, string>> = {
   arena: {Fifty: '50', Forty: '49', nine: '', four: '409', oh: '', nine2: ''},
   title: {Last: 'Lastseat', Seat: '', Race: 'Race-proof', proof: ''},
   close: {Fifty: '50', Last: 'Lastseat', Seat: ''},
-  load: {ten: '10,000', thousand: '', two: '2,000', hundred: '100', p: 'p95', ninety: '', five: ''},
+  load: {p: 'p95', ninety: '', five: ''},
   security: {Ten: '10', ten: '10', fifty: '50'},
 };
 

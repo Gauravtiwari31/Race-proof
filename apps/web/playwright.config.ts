@@ -16,7 +16,8 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'pnpm --filter api exec tsx ../web/e2e/prepare-db.ts && pnpm --filter api start',
+    // Prepares the database, then runs the built API in the same process (see the file for why).
+    command: 'node e2e/start-server.mjs',
     url: `http://127.0.0.1:${PORT}/api/healthz`,
     reuseExistingServer: false,
     timeout: 60_000,

@@ -398,9 +398,9 @@ export const Load: Scene = () => {
           </div>
           <div style={{display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 30}}>
             {[
-              ['10,000', 'users seeded', at('load', 'ten')],
-              ['2,000', 'teams', at('load', 'two')],
-              [facts.requests, `requests, ${facts.failures} failed`, at('load', 'hundred')],
+              ['10,000', 'users seeded', at('load', '10,000')],
+              ['2,000', 'teams', at('load', '2,000')],
+              [facts.requests, `requests, ${facts.failures} failed`, at('load', '100')],
             ].map(([n, label, when]) => (
               <Rise key={label as string} at={when as number} dy={14}>
                 <div style={{display: 'flex', gap: 18, alignItems: 'baseline'}}>

@@ -9,9 +9,10 @@ const admin = new URL(process.env.TEST_ADMIN_URL ?? 'postgres://postgres:postgre
 /**
  * A clean database per run, built from the same migrations as production.
  *
- * It runs as the first half of the web server's command, not as Playwright's globalSetup: Playwright
- * starts the web server before globalSetup, so the server would connect before the role and database
- * existed, and then lose its connections to the DROP below.
+ * This is the web server's command, not Playwright's globalSetup: Playwright starts the web server
+ * before globalSetup, so the server would connect before the role and database existed, and then lose
+ * its connections to the DROP below. It is one plain node process with no pnpm or shell in between,
+ * so Playwright's kill reaches the server itself; otherwise the server outlives the run on Linux.
  */
 async function prepare() {
   const server = new pg.Client({ connectionString: admin.toString() });
@@ -37,3 +38,4 @@ async function prepare() {
 }
 
 await prepare();
+await import('../../api/dist/server.js');

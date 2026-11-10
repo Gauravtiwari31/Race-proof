@@ -41,7 +41,7 @@ SCENES = {
     "security": "Only the leader can accept or remove, and it is checked after the lock. Invite codes carry fifty random bits, stored as hashes, and they expire. Ten guesses every ten minutes. Every input is validated.",
     "suggest": "Suggestions rank people by missing skills, and time zone overlap, and every score is explained.",
     "access": "It works on a phone, and with the keyboard alone, and Axe checks every page.",
-    "load": f"We seeded ten thousand users and two thousand teams. With a hundred concurrent users, the board's p ninety five is {FACTS['p95']} milliseconds, against a budget of two hundred.",
+    "load": f"We seeded 10,000 users and 2,000 teams. With 100 concurrent users, the board's p ninety five is {FACTS['p95']} milliseconds, against a budget of 200.",
     "chaos": f"Then we killed server replicas every few seconds, during a write storm. {FACTS['kills']} kills. {FACTS['seats']:,} seats taken. Zero invariant violations.",
     "ci": f"{FACTS['apiTests']} API tests on real Postgres, and {FACTS['e2eTests']} browser tests, run in GitHub Actions on every push.",
     "tradeoffs": "The trade offs. A denormalised count for fast reads, guarded by an invariant checker. Server sent events, since updates flow one way. Postgres for rate limits, nothing extra to run. With one more week, a commit ordered event log, waitlists with seat holds, and an organiser console.",

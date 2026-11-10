@@ -65,7 +65,7 @@
 <h2>2. Preventing races</h2>
 <p>A seat is taken by one statement: <code>UPDATE teams SET member_count = member_count + 1 ... WHERE id = $1 AND member_count &lt; max_size</code>. Racers block on the row lock. When the winner commits, <code>READ COMMITTED</code> re-evaluates the <code>WHERE</code> against the new row and updates 0 rows, so there is no gap between check and act. Racing into two teams fails on the membership key and rolls back that seat.</p>
 <ul>
-  <li><b>Lock order:</b> team, then memberships, then requests and codes. Each transaction locks at most one team. Two tests force the dangerous interleavings with <code>pg_blocking_pids</code>, because they almost never occur by chance.</li>
+  <li><b>Lock order:</b> team, then memberships, then the user row, then requests and codes. Each transaction locks at most one team. The user row serialises joining one team against asking to join another, so no request is left pending. Two tests force the dangerous interleavings with <code>pg_blocking_pids</code>, because they almost never occur by chance.</li>
   <li><b>Authorisation after the lock, in a new statement.</b> A subquery inside the lock-taking <code>UPDATE</code> keeps its old snapshot on re-check, so a demoted leader would pass.</li>
   <li><b>Why not <code>SERIALIZABLE</code>:</b> correct, but a stampede mostly aborts and retries. <b>Why not Redis:</b> a second source of truth that fixes nothing.</li>
 </ul>
@@ -90,13 +90,13 @@
 </ul>
 
 <h2>6. Results</h2>
-<p>Local Compose stack, 12 logical CPUs, seeded 10k users and 2k teams, k6 on the same machine:</p><ul><li><b>Board reads, 100 VUs:</b> p95 60.4 ms, 3,179 requests/s, 0 failures of 572,719.</li><li><b>With 10 writers and 300 open SSE streams:</b> reader p95 40.6 ms, 0 failures.</li><li><b>Chaos:</b> 9 replicas killed under a write storm with 1,457 seats taken: 0 invariant violations, 0 intents abandoned.</li><li><b>Tests:</b> 120 API tests on real Postgres and 7 browser tests, including keyboard-only and axe.</li></ul>
+<p>Local Compose stack, 12 logical CPUs, seeded 10k users and 2k teams, k6 on the same machine (10 Nov 2026):</p><ul><li><b>Board reads, 100 VUs:</b> p95 114.1 ms against a 200 ms budget, 1,811 requests/s, 0 failures of 326,379.</li><li><b>With 10 writers and 300 open SSE streams:</b> reader p95 107.2 ms, 0 failures in any scenario.</li><li><b>Chaos:</b> 8 replicas killed under a write storm with 1,280 seats taken: all invariants hold, 0 intents abandoned.</li><li><b>Tests:</b> 122 API tests on real Postgres and 9 browser tests, including keyboard-only and axe. Live at lastseat-b4mi.onrender.com.</li></ul>
 
 <h2>7. One more week</h2>
 <ul>
   <li>Commit-ordered event log through logical replication.</li>
   <li>Waitlist with automatic seat offers and a timed hold.</li>
-  <li>WebAuthn, and rate limits on signup.</li>
+  <li>WebAuthn passkeys.</li>
   <li>An organiser UI, and partitioning the audit table per hackathon.</li>
   <li>k6 at 1,000 VUs on paid compute.</li>
 </ul>

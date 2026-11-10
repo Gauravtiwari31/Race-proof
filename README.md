@@ -8,7 +8,7 @@ Hackathon team formation where every hard guarantee is enforced by Postgres in a
 |:--|:--|
 | **Live demo** | <https://lastseat-b4mi.onrender.com> (free tier; the first request after a quiet spell can take up to a minute) |
 | **Sign in** | `user1@seed.local` / `demo-password-123` (every seeded user shares this password) |
-| **Demo video** | [media/out](media/README.md), 3:39 |
+| **Demo video** | 3:39 walkthrough, linked from the submission page ([how it is made](media/README.md)) |
 | **Pitch deck** | [media/deck/lastseat-pitch.pdf](media/deck/lastseat-pitch.pdf) ([.pptx](media/deck/lastseat-pitch.pptx)) |
 | **Design doc** | [docs/design.pdf](docs/design.pdf) |
 | **Load reports** | [board](docs/reports/load-report.html), [reads during writes](docs/reports/load-report-mixed.html), [chaos](docs/reports/chaos.log), [query plans](docs/reports/explain.txt) |
