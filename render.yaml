@@ -8,7 +8,7 @@ services:
     plan: free
     healthCheckPath: /api/healthz
     # The owner credential is dropped before the API starts, so only migrate and seed ever hold it.
-    dockerCommand: sh -c "node dist/db/migrate.js && node dist/db/seed.js && exec env -u DATABASE_ADMIN_URL node dist/server.js"
+    dockerCommand: sh /app/release-and-start.sh
     envVars:
       - key: NODE_ENV
         value: production

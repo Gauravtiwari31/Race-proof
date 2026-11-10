@@ -13,6 +13,7 @@ import secrets
 import shutil
 import sys
 import time
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -128,7 +129,7 @@ def person(browser, name: str, skills: list[str], role: str, viewport=(1024, 700
 
 
 def api(page, method: str, path: str, body=None):
-    headers = {"x-requested-with": "film", "idempotency-key": secrets.token_hex(12)}
+    headers = {"x-requested-with": "film", "idempotency-key": str(uuid.uuid4())}
     res = page.request.fetch(f"{BASE}/api{path}", method=method, data=body, headers=headers)
     assert res.ok, f"{method} {path}: {res.status} {res.text()}"
     return res.json() if res.text() else None

@@ -18,6 +18,7 @@ COPY --from=build /app/apps/api/dist ./dist
 COPY --from=build /app/apps/api/public ./public
 COPY --from=build /app/apps/api/package.json ./package.json
 COPY db /app/db
+COPY ops/release-and-start.sh /app/release-and-start.sh
 USER node
 EXPOSE 3000
 CMD ["node", "dist/server.js"]
