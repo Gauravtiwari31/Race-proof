@@ -1,0 +1,20 @@
+== write storm for 60s, killing a replica every 5s
+   killed api-a (kill #1)
+   killed api-b (kill #2)
+   killed api-a (kill #3)
+   killed api-b (kill #4)
+   killed api-a (kill #5)
+   killed api-b (kill #6)
+   killed api-a (kill #7)
+   killed api-b (kill #8)
+    intents_abandoned..............: 0      0/s
+    leaves_completed...............: 2590   38.256632/s
+    retries_after_failure..........: 266    3.929059/s
+    seats_taken....................: 1280   18.906752/s
+    teams_created..................: 1314   19.408963/s
+    http_reqs......................: 8173   120.722568/s
+== invariants: db/invariants.sql, the same checks every test runs
+ Container team_fndn-migrate-run-d5e11c0c71ff Creating 
+ Container team_fndn-migrate-run-d5e11c0c71ff Created 
+all invariants hold
+== result: 8 replicas killed, invariants hold, k6 exit 0

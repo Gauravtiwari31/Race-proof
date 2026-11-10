@@ -1,0 +1,32 @@
+# Render blueprint: API and SPA as one service, so cookies, API and SSE share an origin.
+# DATABASE_URL uses the Neon -pooler host. DATABASE_DIRECT_URL uses the direct host, because LISTEN
+# does not work through a transaction-mode pooler. Set both, and the admin URL, in the dashboard.
+services:
+  - type: web
+    name: team-formation
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/healthz
+    # The owner credential is dropped before the API starts, so only migrate and seed ever hold it.
+    dockerCommand: sh -c "node dist/db/migrate.js && node dist/db/seed.js && exec env -u DATABASE_ADMIN_URL node dist/server.js"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      # Proxies in front of the API that append to X-Forwarded-For. Check req.ips once on the live
+      # service and raise this if Render reports more than one hop.
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: PG_POOL_MAX
+        value: "10"
+      - key: LOG_LEVEL
+        value: warn
+      - key: METRICS_TOKEN
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_DIRECT_URL
+        sync: false
+      - key: DATABASE_ADMIN_URL
+        sync: false

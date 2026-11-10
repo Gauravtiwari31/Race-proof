@@ -1,0 +1,101 @@
+# `docker compose up -d db` is enough for `pnpm test`.
+# `docker compose up --build` runs the whole product: open http://localhost:8080.
+x-api: &api
+  image: team-formation-api
+  environment:
+    NODE_ENV: production
+    DATABASE_URL: postgres://fndn_api:local-only@db:5432/fndn
+    TRUST_PROXY_HOPS: "1" # Caddy
+    PORT: "3000"
+    INVITE_LIMIT_PER_IP: "100000" # everything local arrives through one proxy address
+    SIGNUP_LIMIT_PER_IP: "100000"
+  depends_on:
+    seed:
+      condition: service_completed_successfully
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fndn
+    ports:
+      - "5433:5432" # 5433 so it can run alongside a Postgres installed on the host
+    volumes:
+      - pgdata:/var/lib/postgresql # the postgres:18 image moved its data below this path
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fndn"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    image: team-formation-api
+    build: .
+    command: ["node", "dist/db/migrate.js"]
+    environment:
+      DATABASE_ADMIN_URL: postgres://postgres:postgres@db:5432/fndn
+      DATABASE_URL: postgres://fndn_api:local-only@db:5432/fndn
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    image: team-formation-api
+    command: ["node", "dist/db/seed.js"]
+    environment:
+      DATABASE_ADMIN_URL: postgres://postgres:postgres@db:5432/fndn
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api-a: *api
+  api-b: *api
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "8080:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - api-a
+      - api-b
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    ports:
+      - "3001:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: local-only
+    volumes:
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+  # Load generator, only when asked for: docker compose --profile load run --rm k6 run /load/board.js
+  k6:
+    image: grafana/k6:1.2.2
+    profiles: [load]
+    user: root
+    environment:
+      BASE_URL: http://caddy
+      K6_WEB_DASHBOARD: "true"
+      K6_WEB_DASHBOARD_EXPORT: /out/load-report.html
+    volumes:
+      - ./load:/load:ro
+      - ./docs/reports:/out
+
+volumes:
+  pgdata:

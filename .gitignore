@@ -1,0 +1,24 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+coverage/
+apps/api/public/
+playwright-report/
+test-results/
+# Private build plan and interview notes: not part of the submission.
+ps1-team-formation.*
+docs/reports/*-k6.log
+!docs/reports/chaos.log
+media/out/
+media/video/clips/
+media/video/reel/public/footage/
+media/video/reel/public/tts/
+media/video/reel/public/sfx/
+.claude/
+media/video/facts.json
+media/video/live-url.txt
+media/video/reel/src/voice.json
+media/video/reel/src/timeline.json
+media/video/reel/src/terminal.json

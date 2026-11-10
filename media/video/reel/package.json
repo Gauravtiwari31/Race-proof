@@ -1,0 +1,20 @@
+{
+  "name": "lastseat-reel",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.tsx",
+    "render": "remotion render src/index.tsx Reel ../../out/lastseat-walkthrough.mp4 --codec=h264 --crf=18"
+  },
+  "dependencies": {
+    "@fontsource/barlow": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@remotion/cli": "4.0.540",
+    "@remotion/transitions": "4.0.540",
+    "@types/react": "^18.3.31",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "4.0.540",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "title": "Team Formation",
+  "uid": "team-formation",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "title": "p95 latency (s)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[1m])))" }]
+    },
+    {
+      "id": 2, "title": "Requests per second, by replica", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "sum by (instance) (rate(http_request_duration_seconds_count[1m]))", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 3, "title": "Joins and conflicts per second", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(team_joins_total[1m]))", "legendFormat": "joins" },
+        { "refId": "B", "expr": "sum by (code) (rate(team_conflicts_total[1m]))", "legendFormat": "{{code}}" }
+      ]
+    },
+    {
+      "id": 4, "title": "Open SSE streams, by replica", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [{ "refId": "A", "expr": "sum by (instance) (sse_open_streams)", "legendFormat": "{{instance}}" }]
+    }
+  ]
+}

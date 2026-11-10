@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Race-proof Team Formation: design</title>
+<style>
+  @page { size: A4; margin: 11mm 13mm; }
+  * { box-sizing: border-box; }
+  body { font: 8.55pt/1.34 Arial, Helvetica, sans-serif; color: #1a2233; margin: 0; }
+  h1 { font-size: 15pt; margin: 0; color: #1e3a8a; }
+  .sub { color: #51607a; margin: 1pt 0 6pt; }
+  h2 { font-size: 9.5pt; margin: 6.5pt 0 2pt; color: #1e3a8a; border-bottom: .6pt solid #c5d0e6; padding-bottom: 1pt; }
+  p { margin: 0 0 3pt; }
+  ul { margin: 0 0 3pt; padding-left: 11pt; }
+  li { margin-bottom: 1.2pt; }
+  code { font: 7.9pt Consolas, monospace; background: #eef2f9; padding: 0 1.5pt; border-radius: 2pt; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12pt; }
+  svg { width: 100%; height: auto; display: block; margin: 2pt 0 3pt; }
+  svg text { font-family: Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Race-proof Team Formation</h1>
+<p class="sub">Design notes. Every hard guarantee is enforced by Postgres in a single transaction, and proven by a test that fails if the guarantee is removed.</p>
+
+<svg viewBox="0 0 720 112" role="img" aria-label="Browser to Caddy to two API replicas to PostgreSQL, with NOTIFY returning from Postgres to the replicas and SSE to the browser">
+  <defs><marker id="a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7z" fill="#51607a"/></marker></defs>
+  <g fill="#eef2f9" stroke="#8aa0c8">
+    <rect x="4" y="38" width="92" height="36" rx="5"/><rect x="150" y="38" width="80" height="36" rx="5"/>
+    <rect x="288" y="6" width="130" height="40" rx="5"/><rect x="288" y="66" width="130" height="40" rx="5"/>
+    <rect x="510" y="16" width="206" height="80" rx="5"/>
+  </g>
+  <g font-size="10.5" fill="#1a2233" text-anchor="middle">
+    <text x="50" y="60">Browser SPA</text><text x="190" y="60">Caddy</text>
+    <text x="353" y="24">API replica A</text><text x="353" y="84">API replica B</text>
+    <text x="613" y="34" font-weight="bold">PostgreSQL</text>
+  </g>
+  <g font-size="8.8" fill="#51607a" text-anchor="middle">
+    <text x="353" y="37">Fastify, stateless</text><text x="353" y="97">Fastify, stateless</text>
+    <text x="613" y="49">teams, memberships, invite_codes,</text>
+    <text x="613" y="61">join_requests, idempotency_keys,</text>
+    <text x="613" y="73">audit_events (the outbox)</text>
+    <text x="613" y="86">one transaction per mutation</text>
+    <text x="123" y="33">HTTPS + SSE</text>
+    <text x="464" y="18">tx</text><text x="464" y="62">NOTIFY after commit</text>
+  </g>
+  <g stroke="#51607a" fill="none" marker-end="url(#a)">
+    <path d="M96 56H148"/><path d="M230 50L286 28"/><path d="M230 62L286 84"/>
+    <path d="M418 22H508"/><path d="M418 80H508"/>
+    <path d="M508 50L420 34" stroke-dasharray="3 2"/><path d="M508 66L420 76" stroke-dasharray="3 2"/>
+  </g>
+</svg>
+
+<div class="cols">
+<div>
+<h2>1. Data model</h2>
+<p><code>teams</code> holds the denormalised <code>member_count</code>, <code>max_size</code> and a <code>version</code> that bumps on each change. Three constraints carry correctness:</p>
+<ul>
+  <li><code>memberships</code> primary key <code>(hackathon_id, user_id)</code>: one team per person. A composite foreign key to <code>teams (id, hackathon_id)</code> stops a wrong hackathon id from getting around it.</li>
+  <li>Partial unique index <code>one_leader_per_team</code>: never two leaders.</li>
+  <li><code>CHECK (member_count BETWEEN 0 AND max_size)</code>: a last line of defence.</li>
+</ul>
+<p>The API connects as a role that can only <code>SELECT</code> and <code>INSERT</code> on <code>audit_events</code>, so the log is append-only by database grant.</p>
+
+<h2>2. Preventing races</h2>
+<p>A seat is taken by one statement: <code>UPDATE teams SET member_count = member_count + 1 ... WHERE id = $1 AND member_count &lt; max_size</code>. Racers block on the row lock. When the winner commits, <code>READ COMMITTED</code> re-evaluates the <code>WHERE</code> against the new row and updates 0 rows, so there is no gap between check and act. Racing into two teams fails on the membership key and rolls back that seat.</p>
+<ul>
+  <li><b>Lock order:</b> team, then memberships, then requests and codes. Each transaction locks at most one team. Two tests force the dangerous interleavings with <code>pg_blocking_pids</code>, because they almost never occur by chance.</li>
+  <li><b>Authorisation after the lock, in a new statement.</b> A subquery inside the lock-taking <code>UPDATE</code> keeps its old snapshot on re-check, so a demoted leader would pass.</li>
+  <li><b>Why not <code>SERIALIZABLE</code>:</b> correct, but a stampede mostly aborts and retries. <b>Why not Redis:</b> a second source of truth that fixes nothing.</li>
+</ul>
+<p>The tests can fail: <code>race.mutation-check</code> swaps in a read-then-write seat and asserts several winners. The Race Arena shows the same bug live.</p>
+
+<h2>3. Idempotency</h2>
+<p>The key row commits in the same transaction as the change. A duplicate blocks on the primary key, then replays the stored answer. Domain failures roll back to a savepoint and keep the claim, so <code>TEAM_FULL</code> replays as <code>TEAM_FULL</code>. A crash rolls back both, so no "in progress" state can get stuck. This is only valid because every side effect is local to one ACID database. Invite creation opts out, since storing its response would store the plaintext code.</p>
+</div>
+<div>
+<h2>4. Real-time</h2>
+<p>The audit row committed with a change is the outbox, so there is no dual write. <code>pg_notify</code> runs inside the transaction and is delivered only on commit. Each replica holds one direct connection for <code>LISTEN</code>, reads the committed rows and pushes them to its own SSE clients.</p>
+<p>Ids from <code>bigserial</code> are assigned at insert, not commit, so <code>Last-Event-ID</code> alone can skip an event. Clients therefore use <b>snapshot plus versioned deltas</b>: apply an event only if its version is newer, and refetch on every reconnect. A miss means briefly stale, never wrong.</p>
+
+<h2>5. Trade-offs</h2>
+<ul>
+  <li><b>Denormalised count:</b> fast board reads, with drift risk covered by one transaction and an invariant checker run after tests, seeding and chaos.</li>
+  <li><b>SSE over WebSocket:</b> updates flow one way, and reconnect comes free.</li>
+  <li><b>Postgres rate limits over Redis:</b> durable and shared with no new infrastructure. Attempts reserve first and refund on success, so bursts cannot slip through. Cost: a write per attempt.</li>
+  <li><b><code>NOTIFY</code> in the transaction:</b> cannot be lost, but takes a global lock at commit. Fine here; not at very large scale.</li>
+  <li><b>Same origin:</b> Fastify serves the SPA, so cookies, API and SSE share one origin. No third-party cookie problem.</li>
+  <li><b>Free tier:</b> 0.1 CPU limits live latency, so Compose results are reported beside the live ones.</li>
+</ul>
+
+<h2>6. Results</h2>
+<p>Local Compose stack, 12 logical CPUs, seeded 10k users and 2k teams, k6 on the same machine:</p><ul><li><b>Board reads, 100 VUs:</b> p95 60.4 ms, 3,179 requests/s, 0 failures of 572,719.</li><li><b>With 10 writers and 300 open SSE streams:</b> reader p95 40.6 ms, 0 failures.</li><li><b>Chaos:</b> 9 replicas killed under a write storm with 1,457 seats taken: 0 invariant violations, 0 intents abandoned.</li><li><b>Tests:</b> 120 API tests on real Postgres and 7 browser tests, including keyboard-only and axe.</li></ul>
+
+<h2>7. One more week</h2>
+<ul>
+  <li>Commit-ordered event log through logical replication.</li>
+  <li>Waitlist with automatic seat offers and a timed hold.</li>
+  <li>WebAuthn, and rate limits on signup.</li>
+  <li>An organiser UI, and partitioning the audit table per hackathon.</li>
+  <li>k6 at 1,000 VUs on paid compute.</li>
+</ul>
+</div>
+</div>
+</body>
+</html>

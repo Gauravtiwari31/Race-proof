@@ -1,0 +1,17 @@
+{
+  "name": "team-formation",
+  "private": true,
+  "packageManager": "pnpm@12.6.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "pnpm --filter api dev",
+    "dev:web": "pnpm --filter web dev",
+    "build": "pnpm --filter web build && pnpm --filter api build",
+    "typecheck": "pnpm --filter api typecheck && pnpm --filter web typecheck",
+    "migrate": "pnpm --filter api migrate",
+    "seed": "pnpm --filter api seed",
+    "invariants": "pnpm --filter api invariants",
+    "test": "pnpm --filter api test",
+    "e2e": "pnpm --filter web e2e"
+  }
+}

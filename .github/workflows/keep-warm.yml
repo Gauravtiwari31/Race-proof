@@ -1,0 +1,15 @@
+name: Keep warm
+
+# The Render free tier sleeps after 15 idle minutes. Set the LIVE_URL repository variable during
+# judging week; without it this does nothing. Disable it afterwards.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    if: ${{ vars.LIVE_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl --fail --silent --show-error --max-time 90 "${{ vars.LIVE_URL }}/api/healthz"
