@@ -89,7 +89,7 @@ To use another Postgres server, point `TEST_ADMIN_URL` at a superuser connection
 
 ## Measured locally
 
-Local Compose stack with two replicas, seeded with 10,000 users and 2,000 teams, and k6 on the same 12-thread laptop, on 10 Nov 2026. Rerun with `bash load/run-all.sh`; it fails if any threshold fails.
+Local Compose stack with two replicas, seeded with 10,000 users and 2,000 teams, and k6 on the same 12-thread laptop, on 10 Nov 2026. The last row is the same stack on a GitHub runner, which anyone can rerun from the Actions tab. Rerun with `bash load/run-all.sh`; it fails if any threshold fails.
 
 | Test | Load | Result |
 |:--|:--|:--|
@@ -97,5 +97,6 @@ Local Compose stack with two replicas, seeded with 10,000 users and 2,000 teams,
 | Reads during writes | 90 readers, 10 writers, 300 open SSE streams | Reader p95 107.2 ms, 0 failures in any scenario |
 | Chaos | A replica killed every 5 seconds under a write storm | 8 kills, 1,280 seats taken, 0 abandoned intents, all invariants hold |
 | Tests | `pnpm test`, `pnpm e2e` | 122 API tests on real Postgres, 9 browser tests |
+| Board reads on GitHub Actions | 100 VUs for 3 minutes, [Load test workflow](https://github.com/Gauravtiwari31/Race-proof/actions/runs/42836141637) | p95 68.9 ms, 2,828 requests/s, 0 failures of 509,320 |
 
 On the live site, a 50-bot arena race returns one winner in about a second, and the naive mode visibly breaks its sandbox team.
