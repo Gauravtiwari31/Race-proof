@@ -6,8 +6,14 @@ import pg from 'pg';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const admin = new URL(process.env.TEST_ADMIN_URL ?? 'postgres://postgres:postgres@localhost:5433/postgres');
 
-/** A clean database per run, built from the same migrations as production. */
-export default async function globalSetup() {
+/**
+ * A clean database per run, built from the same migrations as production.
+ *
+ * It runs as the first half of the web server's command, not as Playwright's globalSetup: Playwright
+ * starts the web server before globalSetup, so the server would connect before the role and database
+ * existed, and then lose its connections to the DROP below.
+ */
+async function prepare() {
   const server = new pg.Client({ connectionString: admin.toString() });
   await server.connect();
   await server.query('DROP DATABASE IF EXISTS fndn_e2e WITH (FORCE)');
@@ -29,3 +35,5 @@ export default async function globalSetup() {
   await db.query(`INSERT INTO hackathons (name, min_team_size, max_team_size) VALUES ('E2E Hack', 2, 2)`);
   await db.end();
 }
+
+await prepare();

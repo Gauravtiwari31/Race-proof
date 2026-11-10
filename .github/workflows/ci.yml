@@ -33,5 +33,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
+        timeout-minutes: 8
       - run: pnpm --filter web exec playwright install --with-deps chromium
       - run: pnpm e2e
+        timeout-minutes: 8

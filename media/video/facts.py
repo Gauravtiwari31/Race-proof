@@ -13,25 +13,6 @@ HERE = Path(__file__).parent
 ROOT = HERE.parent.parent
 REPORTS = ROOT / "docs/reports"
 
-ONES = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split()
-TENS = "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
-
-
-def words(n: int) -> str:
-    if n < 20:
-        return ONES[n]
-    if n < 100:
-        return TENS[n // 10] + ("" if n % 10 == 0 else " " + ONES[n % 10])
-    if n < 1000:
-        return ONES[n // 100] + " hundred" + ("" if n % 100 == 0 else " and " + words(n % 100))
-    return words(n // 1000) + " thousand" + ("" if n % 1000 == 0 else (" and " if n % 1000 < 100 else ", ") + words(n % 1000))
-
-
-def decimal_words(x: float) -> str:
-    whole, frac = f"{x:.1f}".split(".")
-    return words(int(whole)) + ("" if frac == "0" else " point " + ONES[int(frac)])
-
-
 def k6(name: str) -> dict:
     log = (REPORTS / f"{name}-k6.log").read_text(encoding="utf-8", errors="replace")
     p95 = float(re.search(r"http_req_duration\.+: .*?p\(95\)=([\d.]+)ms", log).group(1))
@@ -55,12 +36,12 @@ def main() -> None:
     naive = captured.get("naiveWinners", 20)
 
     facts = {
-        "p95": board["p95"],
+        "p95": round(board["p95"], 1),
         "requests": f"{board['requests']:,}",
         "failures": board["failures"],
         "rps": board["rps"],
         "duration": "3 minutes",
-        "readerP95": float(reader.group(1)) if reader else None,
+        "readerP95": round(float(reader.group(1)), 1) if reader else None,
         "kills": kills,
         "seats": seats,
         "apiTests": api_tests,
@@ -68,14 +49,6 @@ def main() -> None:
         "naiveWinners": naive,
         "repo": "github.com/Gauravtiwari31/Race-proof",
         "live": (HERE / "live-url.txt").read_text().strip() if (HERE / "live-url.txt").exists() else "",
-    }
-    facts |= {
-        "p95Words": decimal_words(board["p95"]),
-        "killsWords": words(kills).capitalize(),
-        "seatsWords": words(seats).capitalize(),
-        "apiTestsWords": words(api_tests).capitalize(),
-        "e2eTestsWords": words(e2e_tests),
-        "naiveWinnersWords": words(naive),
     }
     (HERE / "facts.json").write_text(json.dumps(facts, indent=1), encoding="utf-8")
     print(json.dumps(facts, indent=1))

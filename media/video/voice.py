@@ -1,8 +1,9 @@
 """Narration: one audio file and word timings per scene, and the film's timeline.
 
 The narrator is Microsoft's Indian English voice, so the cast (Ananya, Rohan, Meera, Arjun) is said the way people in
-India say those names. Lines are written for the ear: short sentences, commas where the voice should breathe, numbers
-as words, and "Last Seat" as two words so it is never read as "lasts eat".
+India say those names. Lines are written for the ear: short sentences, commas where the voice should breathe,
+measured numbers as digits (the voice reads them naturally, and the captions then show them exactly), and
+"Last Seat" as two words so it is never read as "lasts eat".
 
 Usage: python voice.py [scene ...]   (needs edge-tts and ffprobe; writes reel/public/tts/*.mp3 and reel/src/voice.json,
 reel/src/timeline.json)
@@ -17,7 +18,7 @@ import edge_tts
 
 HERE = Path(__file__).parent
 VOICE = "en-IN-PrabhatNeural"
-RATE = "+3%"
+RATE = "+14%"
 OUT = HERE / "reel/public/tts"
 FPS = 30
 LEAD = 0.25  # seconds of picture before the voice starts in every scene
@@ -27,23 +28,23 @@ HOLD = {"cold": 0.4, "title": 1.2, "arena": 0.8, "naive": 0.8, "sql": 0.6, "flow
 FACTS = json.loads((HERE / "facts.json").read_text(encoding="utf-8"))
 
 SCENES = {
-    "cold": "Ten thousand people. One hackathon. And every team has one last seat. When fifty people click join at the same moment, exactly one of them should get it.",
+    "cold": "Ten thousand people. One hackathon. And every team has one last seat. When fifty people click join together, exactly one should get it.",
     "title": "This is Last Seat. Race proof team formation, where the database decides every seat.",
-    "arena": "Let me show you. Fifty real requests hit the real database together. One winner. Forty nine clean refusals, each one a four oh nine, team full.",
-    "naive": f"Now we switch to the naive code, the one that reads the count, and then writes it. Same fifty clicks, and {FACTS['naiveWinnersWords']} people get one seat. The count no longer matches the members. This is the bug most apps ship.",
-    "sql": "Our fix is one statement. Update the team, add one, where the count is still below the maximum. Racers wait on the row lock. When the winner commits, Postgres checks the where clause again, and everyone else updates zero rows. A primary key gives one team per person, and a partial unique index gives exactly one leader.",
-    "tests": "And this is proven, not promised. The race test opens fifty connections, holds them at a barrier, and releases them together, twenty times, across two server processes. Then a mutation check swaps in the naive code, and the test goes red. A test that cannot fail, proves nothing.",
-    "flow": "Now the product. Ananya creates a team, and becomes the leader. Rohan finds it on the live board, and asks to join. Her screen updates instantly, no refresh. She accepts, and every board in the hackathon shows the seat is gone.",
-    "rollback": "Meera tries the last seat with an invite code. Her seat appears straight away, but Arjun was faster. The placeholder rolls back, and she is told exactly why.",
-    "idem": "Double clicks and bad networks are also safe. Every write carries an idempotency key, committed in the same transaction as the change. A retry simply gets the original answer back.",
-    "rules": "When the leader leaves, the longest standing member takes over. When the last person leaves, the team is deleted in the same transaction. Every change goes into an append only audit log, and the time machine replays it.",
-    "security": "Only the leader can accept, decline, or remove, and that is checked after the lock, so a demoted leader cannot slip through. Invite codes carry fifty random bits, are stored only as hashes, and expire. Ten guesses per person, every ten minutes. Every input is validated.",
-    "suggest": "Suggestions rank people by the skills your team is missing, and how many hours your time zones overlap. Every score is explained.",
-    "access": "And everything works on a phone, and with the keyboard alone. Axe checks every page in the browser tests.",
-    "load": f"We seeded ten thousand users and two thousand teams. With a hundred concurrent users, the board's p ninety five is {FACTS['p95Words']} milliseconds, against a budget of two hundred.",
-    "chaos": f"Then we killed server replicas every few seconds, in the middle of a write storm. {FACTS['killsWords']} kills. {FACTS['seatsWords']} seats taken. Zero invariant violations.",
-    "ci": f"{FACTS['apiTestsWords']} API tests on real Postgres, and {FACTS['e2eTestsWords']} browser tests, run in GitHub Actions on every push.",
-    "tradeoffs": "Now the trade offs. A denormalised count for fast reads, kept honest by one transaction and an invariant checker. Server sent events, because updates flow one way. Postgres for rate limits, so there is nothing extra to run. With one more week, a commit ordered event log, waitlists with timed seat holds, and an organiser console.",
+    "arena": "Watch. Fifty real requests hit the database at once. One winner. Forty nine clean refusals, four oh nine, team full.",
+    "naive": f"Now the naive code, which reads the count, then writes it. Same fifty clicks, and {FACTS['naiveWinners']} people get one seat. The count no longer matches the members.",
+    "sql": "Our fix is one statement. Update the team, add one, where the count is below the maximum. Racers wait on the row lock. When the winner commits, Postgres checks the where clause again, and everyone else updates zero rows. A primary key gives one team per person, a partial unique index, one leader.",
+    "tests": "Proven, not promised. The race test holds fifty connections at a barrier, and releases them together, twenty times, across two server processes. Then a mutation check swaps in the naive code, and the test goes red.",
+    "flow": "Now the product. Ananya creates a team. Rohan finds it on the live board, and asks to join. Her screen updates instantly. She accepts, and every board shows the seat is gone.",
+    "rollback": "Meera tries the last seat. Her seat appears instantly, but Arjun was faster. The placeholder rolls back, and she is told exactly why.",
+    "idem": "Retries are safe. Every write carries an idempotency key, committed in the same transaction, so a retry gets the first answer back.",
+    "rules": "When the leader leaves, the longest standing member takes over. When the last one leaves, the team is deleted. Every change lands in an append only audit log, with a time machine.",
+    "security": "Only the leader can accept or remove, and it is checked after the lock. Invite codes carry fifty random bits, stored as hashes, and they expire. Ten guesses every ten minutes. Every input is validated.",
+    "suggest": "Suggestions rank people by missing skills, and time zone overlap, and every score is explained.",
+    "access": "It works on a phone, and with the keyboard alone, and Axe checks every page.",
+    "load": f"We seeded ten thousand users and two thousand teams. With a hundred concurrent users, the board's p ninety five is {FACTS['p95']} milliseconds, against a budget of two hundred.",
+    "chaos": f"Then we killed server replicas every few seconds, during a write storm. {FACTS['kills']} kills. {FACTS['seats']:,} seats taken. Zero invariant violations.",
+    "ci": f"{FACTS['apiTests']} API tests on real Postgres, and {FACTS['e2eTests']} browser tests, run in GitHub Actions on every push.",
+    "tradeoffs": "The trade offs. A denormalised count for fast reads, guarded by an invariant checker. Server sent events, since updates flow one way. Postgres for rate limits, nothing extra to run. With one more week, a commit ordered event log, waitlists with seat holds, and an organiser console.",
     "close": "Fifty clicks. One seat. Exactly one winner. This is Last Seat.",
 }
 # Where the music changes: the demo begins, the proof section, the close.

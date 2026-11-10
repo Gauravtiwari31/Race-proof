@@ -52,6 +52,7 @@ const PER_SCENE: Record<string, Record<string, string>> = {
   title: {Last: 'Lastseat', Seat: '', Race: 'Race-proof', proof: ''},
   close: {Fifty: '50', Last: 'Lastseat', Seat: ''},
   load: {ten: '10,000', thousand: '', two: '2,000', hundred: '100', p: 'p95', ninety: '', five: ''},
+  security: {Ten: '10', ten: '10', fifty: '50'},
 };
 
 type Word = {t: number; d: number; w: string};

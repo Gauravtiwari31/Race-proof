@@ -1,6 +1,7 @@
 # Render blueprint: API and SPA as one service, so cookies, API and SSE share an origin.
-# DATABASE_URL uses the Neon -pooler host. DATABASE_DIRECT_URL uses the direct host, because LISTEN
-# does not work through a transaction-mode pooler. Set both, and the admin URL, in the dashboard.
+# DATABASE_ADMIN_URL is the owner role, used only by migrate and seed. DATABASE_URL is the fndn_api role
+# that migrate creates. With a transaction-mode pooler (Neon's -pooler host), DATABASE_DIRECT_URL must
+# point at the direct host, because LISTEN does not work through one. Without a pooler, set it equal.
 services:
   - type: web
     name: team-formation

@@ -13,6 +13,8 @@ console.log(`listening ${address}`);
 
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.once(signal, () => {
+    // Graceful first; if anything holds the close open, exit anyway rather than hang the host.
+    setTimeout(() => process.exit(1), 10_000).unref();
     stopMaintenance();
     void fastify.close().then(() => process.exit(0));
   });

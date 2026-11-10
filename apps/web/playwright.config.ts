@@ -4,7 +4,6 @@ const PORT = 3100;
 
 export default defineConfig({
   testDir: './e2e',
-  globalSetup: './e2e/global-setup.ts',
   timeout: 60_000,
   fullyParallel: false,
   workers: 1,
@@ -17,10 +16,10 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'pnpm --filter api start',
+    command: 'pnpm --filter api exec tsx ../web/e2e/prepare-db.ts && pnpm --filter api start',
     url: `http://127.0.0.1:${PORT}/api/healthz`,
     reuseExistingServer: false,
-    timeout: 30_000,
+    timeout: 60_000,
     env: {
       DATABASE_URL: 'postgres://fndn_api_e2e:e2e-only@localhost:5433/fndn_e2e'.replace('localhost:5433', new URL(process.env.TEST_ADMIN_URL ?? 'postgres://postgres:postgres@localhost:5433/postgres').host),
       PORT: String(PORT),

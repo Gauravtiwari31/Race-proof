@@ -366,7 +366,7 @@ export const Security: Scene = () => (
       </Rise>
       <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 520px)', gap: 30}}>
         <Card at={at('security', 'leader')} title="Leader only" body="Accept, decline and remove check the role after the row lock." code="race.stale-leader-check" />
-        <Card at={at('security', 'demoted')} title="No stale authority" body="A leader demoted while a request waits is refused." code="new statement, fresh snapshot" />
+        <Card at={at('security', 'lock')} title="No stale authority" body="A leader demoted while a request waits is refused." code="new statement, fresh snapshot" />
         <Card at={at('security', 'fifty')} title="50-bit codes" body="Crockford base32, shown once, stored only as a SHA-256 hash." code="TEAM-7KQ2-M9XD-H4" />
         <Card at={at('security', 'expire')} title="They expire" body="Expiry, revocation and max uses re-checked after the lock." />
         <Card at={at('security', 'ten')} title="10 guesses / 10 min" body="Per person and per address, durable in Postgres, shared by replicas." />
